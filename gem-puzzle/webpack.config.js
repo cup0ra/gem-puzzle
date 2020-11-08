@@ -33,6 +33,9 @@ const config = {
   },
   mode: setDMode(),
   devtool: setDevTool(),
+  resolve: {
+    extensions: ['.js', '.ts']
+},
   module: {
     rules: [{
         test: /\.html$/,
