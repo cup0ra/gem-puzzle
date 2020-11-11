@@ -133,6 +133,10 @@ const config = {
         ]
       },
       {
+        test: /\.(ogg|mp3|wav|mpe?g)$/i,
+        use: 'file-loader'
+    },
+      {
         test: /\.(woff|woff2|ttf|otf|eot)$/,
         use: [{
           loader: 'file-loader',
@@ -153,8 +157,9 @@ const config = {
       filename: './index.html'
     }),
     new CopyWebpackPlugin([
-      // {from: './src/static', to: './'},
-      // {from: './src/img', to: './img/'},
+      {from: './src/static', to: './'},
+       {from: './assets/img', to: './img/'},
+       {from: './assets/audio', to: './audio/'}
     ]),
   ],
 
