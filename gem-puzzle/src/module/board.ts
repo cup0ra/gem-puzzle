@@ -6,48 +6,69 @@ interface ItemPosition {
 }
 
 class Board {
-    block = document.createElement('div') as HTMLDivElement;
+    wrapperField = document.createElement('div') as HTMLDivElement;
+
+    field = document.createElement('div') as HTMLDivElement;
 
     sizeField: number;
 
-    sizeItem = 100;
+    sizeItem: number;
 
-    items: ItemPosition[] = [];
+    items: ItemPosition[];
 
-    arrayShifts: ItemPosition[] = [];
+    arrayShifts: ItemPosition[];
 
     empty: ItemPosition;
 
-    arrayWin: ItemPosition[] = [];
+    arrayWin: ItemPosition[];
 
     isDrag = false;
 
-    clientX: number;
+    paused = true;
 
-    clientY: number;
+    private clientX: number;
+
+    private clientY: number;
 
     moves = 0;
 
-    constructor(value: number) {
-        this.sizeField = value;
+    image = localStorage.getItem('image') !== 'false';
+
+    sound: boolean = localStorage.getItem('sound') !== 'false';
+
+    bestScore: any = [];
+
+    constructor() {
+        this.sizeField = 4;
+        this.arrayWin = [];
+        this.arrayShifts = [];
+        this.items = [];
+        this.sizeItem = 100;
+    }
+
+    render() {
+        this.field.innerHTML = '';
+        this.items = [];
+        this.arrayWin = [];
+        this.arrayShifts = [];
+        this.wrapperField.classList.add('wrapper-field');
+        this.field.classList.add('container');
+        this.field.style.width = `${this.sizeItem * this.sizeField}px`;
+        this.field.style.height = `${this.sizeItem * this.sizeField}px`;
+        this.field.append(this.createItems());
+        this.wrapperField.append(this.field);
+        document.body.append(this.wrapperField);
+        this.showImage();
+        console.log(this.sizeField, 'sound', this.sound);
+        console.log(this.items, this.arrayWin);
+    }
+
+    createItems = () => {
         this.empty = {
             left: this.sizeField - 1,
             top: this.sizeField - 1,
             value: 0,
         };
-    }
-
-    render() {
-        this.block.classList.add('container');
-        this.block.style.width = `${this.sizeItem * this.sizeField}px`;
-        this.block.style.height = `${this.sizeItem * this.sizeField}px`;
-        this.block.append(this.createItems());
-        document.body.append(this.block);
-        this.items = [...this.items, this.empty];
-        this.showImage();
-    }
-
-    createItems = () => {
         const fragment = document.createDocumentFragment();
         for (let i = 0; i < this.sizeField * this.sizeField - 1; i += 1) {
             const item = document.createElement('div');
@@ -92,11 +113,13 @@ class Board {
             );
             item.addEventListener('dragover', (e) => e.preventDefault(), false);
         }
-        console.log(this.items, this.arrayWin);
+        this.items = [...this.items, this.empty];
+        this.arrayWin = [...this.arrayWin, this.empty];
         return fragment;
     };
 
     dragStart = (cell: HTMLDivElement, event: any): void => {
+        event.dataTransfer.effectAllowed = 'move';
         cell.classList.add('transition');
         this.clientX = event.offsetX;
         this.clientY = event.offsetY;
@@ -108,12 +131,12 @@ class Board {
     dragStop = (cell: HTMLDivElement, event: any, index: number): void => {
         const q = this.items.filter((e) => e.value === 0)[0];
         const w = this.items.filter((e) => String(e.value) === cell.innerText)[0];
-        this.block.append(cell);
+        this.field.append(cell);
         if (
-            event.pageX - this.block.offsetLeft > q.left * this.sizeItem &&
-            event.pageX - this.block.offsetLeft < q.left * this.sizeItem + this.sizeItem &&
-            event.pageY - this.block.offsetTop > q.top * this.sizeItem &&
-            event.pageY - this.block.offsetTop < q.top * this.sizeItem + this.sizeItem
+            event.pageX - this.field.offsetLeft > q.left * this.sizeItem &&
+            event.pageX - this.field.offsetLeft < q.left * this.sizeItem + this.sizeItem &&
+            event.pageY - this.field.offsetTop > q.top * this.sizeItem &&
+            event.pageY - this.field.offsetTop < q.top * this.sizeItem + this.sizeItem
         ) {
             this.move(index + 1);
         } else {
@@ -134,7 +157,8 @@ class Board {
         this.shift(this.items[index - 1]);
         this.moves += 1;
         document.querySelector('.header__moves_quantity').innerHTML = `${this.moves}`;
-        console.log(this.moves);
+        if (this.sound) this.playAudio();
+        this.winGame();
     };
 
     shuffle = (): void => {
@@ -196,20 +220,86 @@ class Board {
     getImage = async () => {
         const response = await fetch('https://raw.githubusercontent.com/irinainina/image-data/blob/master/box/1.jpg');
         const { url } = response;
+        console.log(response);
         return url;
     };
 
     showImage = async () => {
         const url = await this.getImage();
-        console.log(url);
-        /*         document.body.style.backgroundImage = `url(${url})`; */
+
         this.arrayWin.forEach((item: ItemPosition, i: number) => {
-            item.element.style.backgroundImage = `url('../img/1.jpg')`;
-            item.element.style.backgroundPosition = `${this.block.offsetWidth - item.left * this.sizeItem}px ${
-                this.block.offsetHeight - item.top * this.sizeItem
-            }px`;
-            item.element.style.backgroundSize = `${this.block.offsetWidth}px ${this.block.offsetHeight}px`;
+            if (item.element) {
+                if (!this.image) item.element.classList.add('image-none');
+                item.element.style.backgroundImage = `url('../img/1.jpg')`;
+                item.element.style.backgroundPosition = `${this.field.offsetWidth - item.left * this.sizeItem}px ${
+                    this.field.offsetHeight - item.top * this.sizeItem
+                }px`;
+                item.element.style.backgroundSize = `${this.field.offsetWidth}px ${this.field.offsetHeight}px`;
+            }
         });
+    };
+
+    playAudio = () => {
+        const myAudio = new Audio();
+        myAudio.src = '../audio/04526.mp3';
+        myAudio.play();
+    };
+
+    winGame = () => {
+        let counter = 0;
+        for (let i = 0; i < this.arrayWin.length; i += 1) {
+            const item = this.items.filter((el: ItemPosition) => el.value === this.arrayWin[i].value)[0];
+            if (
+                (item.top !== this.arrayWin[i].top && item.left !== this.arrayWin[i].left) ||
+                (item.top === this.arrayWin[i].top && item.left !== this.arrayWin[i].left) ||
+                (item.top !== this.arrayWin[i].top && item.left === this.arrayWin[i].left)
+            ) {
+                return;
+            }
+            counter += 1;
+        }
+        if (counter === this.arrayWin.length) {
+            const array =
+                JSON.parse(localStorage.getItem('score')) === null
+                    ? this.bestScore
+                    : JSON.parse(localStorage.getItem('score'));
+            this.bestScore = [
+                ...array,
+                {
+                    move: this.moves,
+                    date: Date.now(),
+                    size: this.sizeField,
+                    time: document.querySelector('.header__timer span').innerHTML,
+                },
+            ];
+            localStorage.setItem('score', JSON.stringify(this.bestScore));
+            this.paused = !this.paused;
+            this.showCongratulations();
+        }
+    };
+
+    showCongratulations = () => {
+        const congratulations = document.createElement('div');
+        congratulations.classList.add('congratulations');
+        congratulations.style.width = `${this.field.offsetWidth}px`;
+        congratulations.style.height = `${this.field.offsetHeight}px`;
+        congratulations.style.top = `${this.field.offsetTop}px`;
+        congratulations.style.left = `${this.field.offsetLeft}px`;
+        const header = document.createElement('h2');
+        header.textContent = 'Congratulations';
+
+        const description = document.createElement('p');
+        description.textContent = `you won in ${document.querySelector('.header__timer span').innerHTML} minutes and ${
+            this.moves
+        } moves`;
+        const close = document.createElement('button');
+        close.classList.add('congratulations__close');
+        close.textContent = '✖';
+
+        close.addEventListener('click', () => this.wrapperField.removeChild(congratulations));
+        congratulations.append(header, description, close);
+
+        this.wrapperField.append(congratulations);
     };
 }
 
