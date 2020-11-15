@@ -9,31 +9,42 @@ class Game extends Board {
 
     time: HTMLDivElement;
 
-    isGame = true;
-
     header = document.createElement('div');
+
+    saveGame: any = [];
 
     constructor() {
         super();
         this.size = 4;
     }
 
-    initGame = (): void => {
+    initGame = async () => {
         this.isGame = true;
-        this.second = 0;
-        this.minutes = 0;
+        this.second = this.isLoudGame ? this.second : 0;
+        this.minutes = this.isLoudGame ? this.minutes : 0;
         this.header.innerHTML = '';
-        document.body.append(this.createHeader());
+        this.wrapper.append(this.createHeader());
         this.render();
+
         this.timer();
     };
 
     createHeader = (): HTMLDivElement => {
         const headerBlock = document.createElement('div');
         headerBlock.classList.add('header');
-        headerBlock.append(this.createTimer());
-        headerBlock.append(this.createMoves());
-        headerBlock.append(this.createButtonPaused());
+
+        const blockTimeMoves = document.createElement('div');
+        blockTimeMoves.classList.add('header__item');
+
+        const blockButton = document.createElement('div');
+        blockButton.classList.add('header__item');
+
+        blockTimeMoves.append(this.createTimer());
+        blockTimeMoves.append(this.createMoves());
+        blockButton.append(this.createButtonAutocomplete());
+        blockButton.append(this.createButtonPaused());
+
+        headerBlock.append(blockTimeMoves, blockButton);
         this.header.append(headerBlock);
         return this.header;
     };
@@ -41,7 +52,7 @@ class Game extends Board {
     createTimer = (): HTMLDivElement => {
         this.time = document.createElement('div');
         this.time.classList.add('header__timer');
-        this.time.innerHTML = `Time: <span>00:00</span>`;
+        this.time.innerHTML = `<span>00:00</span>`;
         return this.time;
     };
 
@@ -49,15 +60,11 @@ class Game extends Board {
         const moves = document.createElement('div');
         moves.classList.add('header__moves');
 
-        const description = document.createElement('span');
-        description.classList.add('header__moves_description');
-        description.innerHTML = 'Moves:';
-
         const quantity = document.createElement('span');
         quantity.classList.add('header__moves_quantity');
-        quantity.innerHTML = '0';
+        quantity.innerHTML = `${this.moves}`;
 
-        moves.append(description, quantity);
+        moves.append(quantity);
         return moves;
     };
 
@@ -70,6 +77,15 @@ class Game extends Board {
         return button;
     };
 
+    createButtonAutocomplete = (): HTMLButtonElement => {
+        const button = document.createElement('button');
+        button.classList.add('header__button_autocomplete');
+        button.innerText = 'Autocomplete';
+
+        button.addEventListener('click', () => this.refresh());
+        return button;
+    };
+
     timer = (): void => {
         const timer = setInterval(() => {
             if (this.paused) {
@@ -78,7 +94,7 @@ class Game extends Board {
                     this.second = 0;
                     this.minutes += 1;
                 }
-                this.time.innerHTML = `Time: <span>${this.minutes < 10 ? `0${this.minutes}` : this.minutes}:${
+                this.time.innerHTML = `<span>${this.minutes < 10 ? `0${this.minutes}` : this.minutes}:${
                     this.second < 10 ? `0${this.second}` : this.second
                 }</span>`;
             } else {
@@ -88,6 +104,7 @@ class Game extends Board {
     };
 
     pausedGame = (button: HTMLButtonElement): void => {
+        if (!this.isGame) return;
         if (!this.paused) this.timer();
         document.querySelector('.menu').classList.toggle('hidden');
         this.field.classList.toggle('hidden');
