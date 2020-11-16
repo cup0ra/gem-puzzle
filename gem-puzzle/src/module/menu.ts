@@ -1,6 +1,5 @@
-/* eslint-disable no-restricted-syntax */
-import Board from './board';
 import Game from './game';
+import { BestScore, SaveGame } from '../interface/interface';
 
 class Menu extends Game {
     board: any;
@@ -28,7 +27,7 @@ class Menu extends Game {
         title.textContent = 'GEM PUZZLE';
         header.append(title);
         return header;
-    }
+    };
 
     createMenu = (): DocumentFragment => {
         const fragment = document.createDocumentFragment();
@@ -37,28 +36,28 @@ class Menu extends Game {
         this.menuContainer.append(this.createButton('New Game', this.startNewGame));
         this.menuContainer.append(this.createButton('Save game', this.showSaveGame));
         this.menuContainer.append(this.createButton('Best score', this.showScore));
-        this.menuContainer.append(this.createButton('Sitting', this.showSittings));
+        this.menuContainer.append(this.createButton('Settings', this.showSittings));
         this.menuContainer.append(this.creteSittings());
         this.wrapperMenu.append(this.menuContainer);
         fragment.append(this.wrapperMenu);
         return fragment;
     };
 
-    createButton = (name: string, q: any) => {
+    createButton = (name: string, functions: any): HTMLButtonElement => {
         const button = document.createElement('button');
         button.classList.add('menu__item');
         button.textContent = name;
-        button.addEventListener('click', () => q());
+        button.addEventListener('click', () => functions());
         return button;
     };
 
-    createInput = () => {
+    createInput = (): HTMLInputElement => {
         const input = document.createElement('input');
         input.type = 'range';
         return input;
     };
 
-    creteSittings = () => {
+    creteSittings = (): HTMLDivElement => {
         this.mainSitting.classList.add('sittings', 'hidden');
 
         const input = document.createElement('input');
@@ -72,17 +71,21 @@ class Menu extends Game {
 
         const buttonSound = document.createElement('button');
         buttonSound.classList.add('sittings__button_sound');
-        buttonSound.innerText = this.sound ? 'Sound Off' : 'Sound On';
+        buttonSound.innerText = this.sound ? 'Sound On' : 'Sound Off';
 
         const buttonImage = document.createElement('button');
         buttonImage.classList.add('sittings__button_image');
-        buttonImage.innerText = this.image ? 'Image Off' : 'Image On';
+        buttonImage.innerText = this.image ? 'Image On' : 'Image Off';
+
+        const buttonNumber = document.createElement('button');
+        buttonNumber.classList.add('sittings__button_number');
+        buttonNumber.innerText = this.isNumber ? 'Number Off' : 'Number On';
 
         const close = document.createElement('button');
         close.classList.add('sittings__close');
         close.textContent = '✖';
 
-        this.mainSitting.append(label, input, buttonSound, buttonImage, close);
+        this.mainSitting.append(label, input, buttonSound, buttonImage, buttonNumber, close);
         input.addEventListener('input', () => {
             this.setEmpty(+input.value);
             this.setSizeField(+input.value);
@@ -92,18 +95,29 @@ class Menu extends Game {
 
         buttonSound.addEventListener('click', () => {
             this.sound = !this.sound;
-            buttonSound.innerText = this.sound ? 'Sound Off' : 'Sound On';
+            buttonSound.innerText = this.sound ? 'Sound On' : 'Sound Off';
             localStorage.setItem('sound', `${this.sound}`);
         });
         buttonImage.addEventListener('click', () => {
             this.image = !this.image;
-            buttonImage.innerText = this.image ? 'Image Off' : 'Image On';
+            buttonImage.innerText = this.image ? 'Image On' : 'Image Off';
             localStorage.setItem('image', `${this.image}`);
             if (this.arrayWin.length > 0) {
                 this.arrayWin.forEach((e) => {
                     if (e.element) {
-                        /* e.element.innerText = this.image ? '' : `${e.value}`; */
                         e.element.classList.toggle('image-none');
+                    }
+                });
+            }
+        });
+        buttonNumber.addEventListener('click', () => {
+            this.isNumber = !this.isNumber;
+            buttonNumber.innerText = this.isNumber ? 'Number Off' : 'Number On';
+            localStorage.setItem('number', `${this.isNumber}`);
+            if (this.arrayWin.length > 0) {
+                this.arrayWin.forEach((e) => {
+                    if (e.element) {
+                        e.element.classList.toggle('number-none');
                     }
                 });
             }
@@ -113,35 +127,28 @@ class Menu extends Game {
         return this.mainSitting;
     };
 
-    showSittings = () => {
+    showSittings = (): void => {
         this.mainSitting.classList.toggle('hidden');
     };
 
-    startNewGame = () => {
+    startNewGame = (): void => {
         this.initGame();
         this.menuContainer.classList.add('hidden');
         this.paused = true;
         this.field.classList.remove('hidden');
     };
 
-    initApp = () => {
-        this.board = 4;
-        this.wrapper.classList.add('wrapper');
-        this.wrapper.append(this.createHeaderApp(), this.createMenu());
-        document.body.append(this.wrapper)
-    };
-
-    showScore = () => {
+    showScore = (): void => {
         this.mainScore.classList.add('score');
         this.mainScore.innerHTML = '';
         this.mainScore.append(this.createScore('score__header', 'Date', 'Time', 'Size', 'Moves', 'id'));
         const array = JSON.parse(localStorage.getItem('score'));
         if (array) {
-            array.forEach((element: any) => {
+            array.forEach((element: BestScore) => {
                 this.mainScore.append(
                     this.createScore(
                         'score__items',
-                        this.getDate(element),
+                        this.getDate(element.date),
                         element.time,
                         `${element.size}x${element.size}`,
                         element.move,
@@ -158,7 +165,7 @@ class Menu extends Game {
         this.wrapperMenu.append(this.mainScore);
     };
 
-    showSaveGame = () => {
+    showSaveGame = (): void => {
         this.saved = true;
         this.mainSave.classList.add('save-game');
         this.mainSave.innerHTML = '';
@@ -166,14 +173,14 @@ class Menu extends Game {
         this.mainSave.append(this.createScore('save-game__header', 'Date', 'Time', 'Size', 'Moves', 'id'));
         const array = JSON.parse(localStorage.getItem('save'));
         if (array) {
-            array.forEach((element: any) => {
+            array.forEach((element: SaveGame) => {
                 const time = `${element.time[0] < 10 ? `0${element.time[0]}` : element.time[0]}:${
                     element.time[1] < 10 ? `0${element.time[1]}` : element.time[1]
                 }`;
                 this.mainSave.append(
                     this.createScore(
                         'save-game__items',
-                        this.getDate(element),
+                        this.getDate(element.date),
                         time,
                         `${element.size}x${element.size}`,
                         element.move,
@@ -244,15 +251,15 @@ class Menu extends Game {
         return button;
     };
 
-    createButtonLoud = (id: string) => {
+    createButtonLoud = (id: string): HTMLButtonElement => {
         const button = document.createElement('button');
         button.classList.add('loud');
         button.innerText = 'Loud';
         button.dataset.id = id;
-        button.addEventListener('click', (e) => {
+        button.addEventListener('click', () => {
             const array = JSON.parse(localStorage.getItem('save'));
-            const result = array.filter((item: any) => item.id === button.dataset.id)[0];
-            const { size, time, image, move, arrayShift } = result;
+            const result = array.filter((item: SaveGame) => item.id === button.dataset.id)[0];
+            const { size, time, image, move } = result;
             this.setSizeField(size);
             this.setEmpty(size);
             this.isLoudGame = true;
@@ -260,10 +267,8 @@ class Menu extends Game {
             [this.minutes, this.second] = time;
             this.setNumberImage(image);
             this.startNewGame();
-            this.arrayShifts = arrayShift;
             this.loudGame(result);
             this.wrapperMenu.removeChild(this.mainSave);
-            /* this.isLoudGame = false; */
             this.saved = false;
         });
         return button;
@@ -275,12 +280,39 @@ class Menu extends Game {
         return item;
     };
 
-    getDate = (element: any) => {
-        const date = new Date(element.date);
+    getDate = (element: number): string => {
+        const date = new Date(element);
         const m = date.getMonth() + 1;
         const d = date.getDate();
         const dateString = ` ${date.getFullYear()}-${m < 10 ? `0${m}` : m}-${d < 10 ? `0${d}` : d}`;
         return dateString;
+    };
+
+    createFooter = (): HTMLDivElement => {
+        const footer = document.createElement('div');
+        footer.classList.add('footer');
+
+        const name = document.createElement('a');
+        name.classList.add('link-git');
+        name.href = 'https://github.com/cup0ra';
+        name.innerText = 'Cup0ra';
+
+        footer.append(name);
+        return footer;
+    };
+
+    createLouder = (): HTMLImageElement => {
+        const louder = document.createElement('img');
+        louder.classList.add('louder', 'hidden');
+        louder.src = '../img/louder.gif';
+        louder.alt = 'louder';
+        return louder;
+    };
+
+    initApp = (): void => {
+        this.wrapper.classList.add('wrapper');
+        this.wrapper.append(this.createHeaderApp(), this.createMenu(), this.createFooter(), this.createLouder());
+        document.body.append(this.wrapper);
     };
 }
 
