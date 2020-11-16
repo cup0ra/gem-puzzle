@@ -1,10 +1,4 @@
-/* eslint-disable no-continue */
-interface ItemPosition {
-    value: number;
-    left: number;
-    top: number;
-    element?: HTMLDivElement;
-}
+import { ItemPosition, BestScore, SaveGame } from '../interface/interface';
 
 class Board {
     wrapper = document.createElement('div') as HTMLDivElement;
@@ -39,6 +33,8 @@ class Board {
 
     isAutocompleted = false;
 
+    isNumber = localStorage.getItem('number') !== 'false';
+
     private clientX: number;
 
     private clientY: number;
@@ -55,7 +51,7 @@ class Board {
 
     sound: boolean = localStorage.getItem('sound') !== 'false';
 
-    bestScore: any = [];
+    bestScore: BestScore[] = [];
 
     loudGameId: string;
 
@@ -82,6 +78,7 @@ class Board {
         this.loudGameId = '';
         this.items = [];
         this.isGame = true;
+        this.isAutocompleted = false;
         this.arrayWin = [];
         this.arrayShifts = [];
         this.moves = this.isLoudGame ? this.moves : 0;
@@ -91,29 +88,32 @@ class Board {
         this.field.style.width = `${this.sizeItem * this.sizeField}vmin`;
         this.field.style.height = `${this.sizeItem * this.sizeField}vmin`;
         this.field.append(this.createItems());
+        document.querySelector('.louder').classList.remove('hidden');
         this.url = await this.getImage();
+        document.querySelector('.louder').classList.add('hidden');
         this.wrapperField.append(this.field);
         this.wrapper.append(this.wrapperField);
-        console.log(this.isLoudGame)
-        if (!this.isLoudGame){
-            console.log('shafle')
-            this.shuffle()};
+        if (!this.isLoudGame) this.shuffle();
         this.showImage();
-
-        console.log(this.arrayShifts);
+        document.querySelector('.header__moves_quantity').innerHTML = '0';
     };
 
-    loudGame = (result: any): void => {
+    private readonly newProperty = this;
+
+    loudGame = (result: SaveGame): void => {
         this.loudGameId = result.id;
         this.items.forEach((item) => {
-            const q = result.array.filter((e: ItemPosition) => e.value === item.value)[0];
-            item.left = q.left;
-            item.top = q.top;
+            const cell = item;
+            const newPosition = result.array.filter((e: ItemPosition) => e.value === item.value)[0];
+            cell.left = newPosition.left;
+            cell.top = newPosition.top;
             if (item.element) {
-                item.element.style.left = `${q.left * this.sizeItem}vmin`;
-                item.element.style.top = `${q.top * this.sizeItem}vmin`;
+                cell.element.style.left = `${newPosition.left * this.sizeItem}vmin`;
+                cell.element.style.top = `${newPosition.top * this.sizeItem}vmin`;
             }
         });
+        this.arrayShifts = [...this.arrayShifts, ...result.arrayShift];
+        this.isLoudGame = false;
     };
 
     createItems = (): DocumentFragment => {
@@ -165,8 +165,8 @@ class Board {
         return fragment;
     };
 
-    dragStart = (cell: HTMLDivElement, event: any): void => {
-        event.dataTransfer.effectAllowed = 'move';
+    dragStart = (item: HTMLDivElement, event: any): void => {
+        const cell = item;
         this.clientX = event.offsetX;
         this.clientY = event.offsetY;
         cell.style.top = `${event.pageY - this.clientY}px`;
@@ -174,7 +174,8 @@ class Board {
         document.body.append(cell);
     };
 
-    dragStop = (cell: HTMLDivElement, event: any, index: number): void => {
+    dragStop = (item: HTMLDivElement, event: any, index: number): void => {
+        const cell = item;
         const q = this.items.filter((e) => e.value === 0)[0];
         const w = this.items.filter((e) => String(e.value) === cell.innerText)[0];
         this.field.append(cell);
@@ -200,19 +201,19 @@ class Board {
 
     move = (index: number): void => {
         if (this.getAbsoluteValue(index) > 1) return;
+        if (this.sound) this.playAudio();
         this.shift(this.items[index - 1]);
         this.arrayShifts.push(this.items[index - 1]);
         this.moves += 1;
         document.querySelector('.header__moves_quantity').innerHTML = `${this.moves}`;
-        if (this.sound) this.playAudio();
         this.winGame();
     };
 
     shuffle = (): void => {
         let numberShifts: number;
         if (this.sizeField === 3) numberShifts = 100;
-        if (this.sizeField > 3) numberShifts = 100;
-        if (this.sizeField > 6) numberShifts = 1000;
+        if (this.sizeField > 3) numberShifts = 300;
+        if (this.sizeField > 6) numberShifts = 800;
         let pred;
         for (let i = 0; i < numberShifts; i += 1) {
             const shift = ['top', 'bottom', 'left', 'right'].sort((): number => Math.random() - 0.5)[0];
@@ -226,72 +227,63 @@ class Board {
             if (shift === 'right' && pred === 'left') this.bottom();
             pred = shift;
         }
-        /*       console.log(this.arrayShifts);
-        this.arrayShifts.forEach((e, i, arr) => {
-            if (i === 0) return;
-            if (
-                !i ||
-                (e.left === this.arrayShifts[i - 1].left &&
-                    e.top === this.arrayShifts[i - 1].top &&
-                    e.value === this.arrayShifts[i - 1].value)
-            ) {
-                this.arrayShifts.splice(i, 1);
-                console.log(i - 1, arr[i - 1]);
-            }
-        });
- */
-        /*      for (let i = this.arrayShifts.length-1; i > 0; i -= 1) {
-            console.log(this.arrayShifts[i])
-            if (i === this.arrayShifts.length-1) q = [this.arrayShifts[i], ...q];
-            if (
-                !i ||
-                (this.arrayShifts[i].left === this.arrayShifts[i - 1].left &&
-                    this.arrayShifts[i].top === this.arrayShifts[i - 1].top &&
-                    this.arrayShifts[i].value === this.arrayShifts[i - 1].value)
-            )
-                return;
-            q = [this.arrayShifts[i], ...q];
-        } */
-        console.log(this.arrayShifts);
+    };
+
+    checkingDuplicateMoves = (index: number): void => {
+        if (
+            this.arrayShifts.length - 1 > 0 &&
+            this.items[index].left === this.arrayShifts[this.arrayShifts.length - 1].left &&
+            this.items[index].top === this.arrayShifts[this.arrayShifts.length - 1].top &&
+            this.items[index].value === this.arrayShifts[this.arrayShifts.length - 1].value
+        )
+            return;
+        this.shift(this.items[index]);
+        this.arrayShifts.push(this.items[index]);
     };
 
     left = (): void => {
         if (this.empty.left < this.sizeField - 1) {
-            const q = this.items.filter((e) => e.value === 0);
-            const w = this.items.filter((e) => e.top === q[0].top && e.left === q[0].left + 1);
-            this.arrayShifts.push(w[0]);
-            this.shift(w[0]);
+            const emptyPosition = this.items.filter((e) => e.value === 0);
+            const cellLeft = this.items.findIndex(
+                (e) => e.top === emptyPosition[0].top && e.left === emptyPosition[0].left + 1,
+            );
+            this.checkingDuplicateMoves(cellLeft);
         }
     };
 
     right = (): void => {
         if (this.empty.left > 0) {
-            const q = this.items.filter((e) => e.value === 0);
-            const w = this.items.filter((e) => e.top === q[0].top && e.left === q[0].left - 1);
-            this.arrayShifts.push(w[0]);
-            this.shift(w[0]);
+            const emptyPosition = this.items.filter((e) => e.value === 0);
+            const cellRight = this.items.findIndex(
+                (e) => e.top === emptyPosition[0].top && e.left === emptyPosition[0].left - 1,
+            );
+            this.checkingDuplicateMoves(cellRight);
         }
     };
 
     top = (): void => {
         if (this.empty.top > 0) {
-            const q = this.items.filter((e) => e.value === 0);
-            const w = this.items.filter((e) => e.top === q[0].top - 1 && e.left === q[0].left);
-            this.arrayShifts.push(w[0]);
-            this.shift(w[0]);
+            const emptyPosition = this.items.filter((e) => e.value === 0);
+            const cellTop = this.items.findIndex(
+                (e) => e.top === emptyPosition[0].top - 1 && e.left === emptyPosition[0].left,
+            );
+            this.checkingDuplicateMoves(cellTop);
         }
     };
 
     bottom = (): void => {
         if (this.empty.top < this.sizeField - 1) {
-            const q = this.items.filter((e) => e.value === 0);
-            const w = this.items.filter((e) => e.top === q[0].top + 1 && e.left === q[0].left);
-            this.arrayShifts.push(w[0]);
-            this.shift(w[0]);
+            const emptyPosition = this.items.filter((e) => e.value === 0);
+            const cellBottom = this.items.findIndex(
+                (e) => e.top === emptyPosition[0].top + 1 && e.left === emptyPosition[0].left,
+            );
+            this.checkingDuplicateMoves(cellBottom);
         }
     };
 
-    shift = (cell: ItemPosition): void => {
+    shift = (item: ItemPosition): void => {
+        const cell = item;
+        cell.element = document.querySelector(`[data-id="${cell.value}"]`);
         cell.element.style.left = `${this.empty.left * this.sizeItem}vmin`;
         cell.element.style.top = `${this.empty.top * this.sizeItem}vmin`;
         const itemLeft = this.empty.left;
@@ -302,22 +294,31 @@ class Board {
         cell.top = itemTop;
     };
 
-    refresh = (): void => {
+    autoCompleted = (): void => {
         this.isAutocompleted = true;
+        this.isLoudGame = false;
         if (this.arrayShifts.length > 0) {
             const shift: ItemPosition = this.arrayShifts.pop();
-            console.log('refresh', shift, this.arrayShifts, this.empty);
-            this.shift(shift);
-            shift.element.classList.add('transition-autocomplete');
-            shift.element.addEventListener(
+            const index = this.items.findIndex((e) => e.value === shift.value);
+            this.shift(this.items[index]);
+            if (this.sound) this.playAudio();
+            this.moves += 1;
+            document.querySelector('.header__moves_quantity').innerHTML = `${this.moves}`;
+            this.items[index].element.classList.add('transition-autocomplete');
+            this.items[index].element.addEventListener(
                 'transitionend',
-                () => shift.element.classList.remove('transition-autocomplete'),
+                () => this.items[index].element.classList.remove('transition-autocomplete'),
                 false,
             );
-            setTimeout(() => this.refresh(), 400);
-            console.log(this.empty, this.count);
+            const timeout = setTimeout(() => {
+                if (this.isAutocompleted) {
+                    this.autoCompleted();
+                } else {
+                    clearTimeout(timeout);
+                }
+            }, 300);
         } else {
-            /* this.showCongratulations(); */
+            this.showCongratulations();
             this.isAutocompleted = false;
             this.paused = !this.paused;
             this.isGame = false;
@@ -333,16 +334,17 @@ class Board {
         return url;
     };
 
-    showImage = async () => {
-        this.arrayWin.forEach((item: ItemPosition, i: number) => {
+    showImage = (): void => {
+        this.arrayWin.forEach((item: ItemPosition) => {
+            const cell = item;
             if (item.element) {
                 if (!this.image) item.element.classList.add('image-none');
-                /* if (this.image) item.element.innerText = this.image ? '' : `${item.value}`; */
-                item.element.style.backgroundImage = `url(${this.url})`;
-                item.element.style.backgroundPosition = `${
+                if (this.isNumber) item.element.classList.add('number-none');
+                cell.element.style.backgroundImage = `url(${this.url})`;
+                cell.element.style.backgroundPosition = `${
                     this.sizeField * this.sizeItem - item.left * this.sizeItem
                 }vmin ${this.sizeField * this.sizeItem - item.top * this.sizeItem}vmin`;
-                item.element.style.backgroundSize = `${this.sizeField * this.sizeItem}vmin ${
+                cell.element.style.backgroundSize = `${this.sizeField * this.sizeItem}vmin ${
                     this.sizeField * this.sizeItem
                 }vmin`;
             }
@@ -369,6 +371,12 @@ class Board {
             counter += 1;
         }
         if (counter === this.arrayWin.length) {
+            this.items.forEach((item) => {
+                if (item.element) {
+                    const cell = item;
+                    cell.element.draggable = false;
+                }
+            });
             const array =
                 JSON.parse(localStorage.getItem('score')) === null
                     ? this.bestScore
@@ -404,7 +412,7 @@ class Board {
             congratulations.style.backgroundImage = `url(${this.url})`;
         }
         const header = document.createElement('h2');
-        header.textContent = this.isAutocompleted ? 'End' : 'Congratulations';
+        header.textContent = this.isAutocompleted ? 'Game Over' : 'Congratulations';
 
         const description = document.createElement('p');
         description.textContent = this.isAutocompleted

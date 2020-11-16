@@ -1,4 +1,5 @@
 import Board from './board';
+import { SaveGame } from '../interface/interface';
 
 class Game extends Board {
     size: number;
@@ -11,21 +12,15 @@ class Game extends Board {
 
     header = document.createElement('div');
 
-    saveGame: any = [];
+    saveGame: SaveGame[] = [];
 
-    constructor() {
-        super();
-        this.size = 4;
-    }
-
-    initGame = async () => {
+    initGame = (): void => {
         this.isGame = true;
         this.second = this.isLoudGame ? this.second : 0;
         this.minutes = this.isLoudGame ? this.minutes : 0;
         this.header.innerHTML = '';
         this.wrapper.append(this.createHeader());
         this.render();
-
         this.timer();
     };
 
@@ -82,7 +77,7 @@ class Game extends Board {
         button.classList.add('header__button_autocomplete');
         button.innerText = 'Autocomplete';
 
-        button.addEventListener('click', () => this.refresh());
+        button.addEventListener('click', () => this.autoCompleted());
         return button;
     };
 
@@ -104,12 +99,13 @@ class Game extends Board {
     };
 
     pausedGame = (button: HTMLButtonElement): void => {
+        const buttonPaused = button;
         if (!this.isGame) return;
         if (!this.paused) this.timer();
         document.querySelector('.menu').classList.toggle('hidden');
         this.field.classList.toggle('hidden');
         this.paused = !this.paused;
-        button.textContent = this.paused ? 'Pause' : 'Resume';
+        buttonPaused.textContent = this.paused ? 'Pause' : 'Resume';
     };
 }
 
