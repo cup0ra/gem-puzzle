@@ -83,7 +83,6 @@ class Menu extends Game {
 
         const close = document.createElement('button');
         close.classList.add('sittings__close');
-        close.textContent = '✖';
 
         this.mainSitting.append(label, input, buttonSound, buttonImage, buttonNumber, close);
         input.addEventListener('input', () => {
@@ -159,7 +158,6 @@ class Menu extends Game {
         }
         const close = document.createElement('button');
         close.classList.add('score__close');
-        close.textContent = '✖';
         close.addEventListener('click', () => this.wrapperMenu.removeChild(this.mainScore));
         this.mainScore.append(close);
         this.wrapperMenu.append(this.mainScore);
@@ -191,7 +189,6 @@ class Menu extends Game {
         }
         const close = document.createElement('button');
         close.classList.add('save-game__close');
-        close.textContent = '✖';
         close.addEventListener('click', () => {
             this.saved = false;
             this.wrapperMenu.removeChild(this.mainSave);
